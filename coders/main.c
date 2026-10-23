@@ -10,41 +10,79 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <stdio.h>
-#include <stdint.h>
+#include "main.h"
 
-typedef t_ms size_t;
-
-typedef enum e_scheduler {
-	FIFO,
-	EDF,
-}	t_scheduler;
-
-typedef struct s_args {
-	size_t		number_of_coders;
-	t_ms		time_to_burnout;
-	t_ms		time_to_compile;
-	t_ms		time_to_debug;
-	size_t		number_of_compiles_required;
-	t_ms		dongle_cooldown;
-	t_scheduler	scheduler;
-}	t_args;
-
-
-static int error()
+static int	error(void)
 {
-	printf("ERROR");
-	return 1;
+	fprintf(stderr, "Error\nUsage: ./codexion number_of_coders "
+		"time_to_burnout time_to_compile time_to_debug time_to_refactor "
+		"number_of_compiles_required dongle_cooldown fifo|edf\n");
+	return (1);
 }
 
-int main(int arc, char* argv[])
+/*
+ * Parses a non-negative integer made only of digits (optional leading '+').
+ * Rejects empty strings, signs other than '+', non-digit characters
+ * and values above INT_MAX.
+ */
+static bool	parse_uint(const char *str, size_t *out)
+{
+	size_t	i;
+	size_t	value;
+
+	i = 0;
+	value = 0;
+	if (str[i] == '+')
+		i++;
+	if (str[i] == '\0')
+		return (false);
+	while (str[i] >= '0' && str[i] <= '9')
+	{
+		value = value * 10 + (str[i] - '0');
+		if (value > INT_MAX)
+			return (false);
+		i++;
+	}
+	if (str[i] != '\0')
+		return (false);
+	*out = value;
+	return (true);
+}
+
+static bool	parse_scheduler(const char *str, t_scheduler *out)
+{
+	if (strcmp(str, "fifo") == 0)
+		*out = FIFO;
+	else if (strcmp(str, "edf") == 0)
+		*out = EDF;
+	else
+		return (false);
+	return (true);
+}
+
+static bool	handle_input(int argc, char **argv, t_args *args)
+{
+	if (argc != 9)
+		return (false);
+	if (!parse_uint(argv[1], &args->number_of_coders)
+		|| !parse_uint(argv[2], &args->time_to_burnout)
+		|| !parse_uint(argv[3], &args->time_to_compile)
+		|| !parse_uint(argv[4], &args->time_to_debug)
+		|| !parse_uint(argv[5], &args->time_to_refactor)
+		|| !parse_uint(argv[6], &args->number_of_compiles_required)
+		|| !parse_uint(argv[7], &args->dongle_cooldown)
+		|| !parse_scheduler(argv[8], &args->scheduler))
+		return (false);
+	if (args->number_of_coders == 0)
+		return (false);
+	return (true);
+}
+
+int	main(int argc, char *argv[])
 {
 	t_args	args;
 
-	if (argc != 9)
-		return error();
-	args.number_of_coders = atoi(argv[1]);
-	args.time_to_burnout = atoi(argv[2]);
-	args.time_to_compile = atoi(argv[3]);
-
+	if (!handle_input(argc, argv, &args))
+		return (error());
+	return (0);
 }
